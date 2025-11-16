@@ -1,0 +1,136 @@
+{
+  "rules": [
+    {
+      "id": "1",
+      "name": "Allow Web Traffic",
+      "source": "*",
+      "destination": "192.168.1.100",
+      "port": "80",
+      "protocol": "tcp",
+      "action": "allow",
+      "priority": 10,
+      "hit_count": 1523
+    },
+    {
+      "id": "2",
+      "name": "Allow HTTPS",
+      "source": "*",
+      "destination": "192.168.1.100",
+      "port": "443",
+      "protocol": "tcp",
+      "action": "allow",
+      "priority": 20,
+      "hit_count": 2845
+    },
+    {
+      "id": "3",
+      "name": "Block Telnet",
+      "source": "*",
+      "destination": "*",
+      "port": "23",
+      "protocol": "tcp",
+      "action": "deny",
+      "priority": 5,
+      "hit_count": 0
+    },
+    {
+      "id": "4",
+      "name": "Allow SSH Admin",
+      "source": "10.0.0.0/8",
+      "destination": "192.168.1.100",
+      "port": "22",
+      "protocol": "tcp",
+      "action": "allow",
+      "priority": 30,
+      "hit_count": 245
+    },
+    {
+      "id": "5",
+      "name": "Allow SSH Duplicate",
+      "source": "10.0.0.0/8",
+      "destination": "192.168.1.100",
+      "port": "22",
+      "protocol": "tcp",
+      "action": "allow",
+      "priority": 40,
+      "hit_count": 0
+    },
+    {
+      "id": "6",
+      "name": "Allow All Internal",
+      "source": "10.0.0.0/8",
+      "destination": "192.168.1.0/24",
+      "port": "*",
+      "protocol": "any",
+      "action": "allow",
+      "priority": 50,
+      "hit_count": 8932
+    },
+    {
+      "id": "7",
+      "name": "Shadowed SSH",
+      "source": "10.0.1.5",
+      "destination": "192.168.1.100",
+      "port": "22",
+      "protocol": "tcp",
+      "action": "allow",
+      "priority": 60,
+      "hit_count": 12
+    },
+    {
+      "id": "8",
+      "name": "Block RDP",
+      "source": "*",
+      "destination": "*",
+      "port": "3389",
+      "protocol": "tcp",
+      "action": "deny",
+      "priority": 15,
+      "hit_count": 0
+    },
+    {
+      "id": "9",
+      "name": "Allow Database",
+      "source": "192.168.1.50",
+      "destination": "192.168.1.200",
+      "port": "3306",
+      "protocol": "tcp",
+      "action": "allow",
+      "priority": 70,
+      "hit_count": 567
+    },
+    {
+      "id": "10",
+      "name": "Permissive Rule",
+      "source": "*",
+      "destination": "*",
+      "port": "*",
+      "protocol": "any",
+      "action": "allow",
+      "priority": 100,
+      "hit_count": 0
+    },
+    {
+      "id": "11",
+      "name": "Unused Port",
+      "source": "192.168.2.0/24",
+      "destination": "192.168.3.0/24",
+      "port": "8080",
+      "protocol": "tcp",
+      "action": "allow",
+      "priority": 80,
+      "hit_count": 0
+    },
+    {
+      "id": "12",
+      "name": "Allow DNS",
+      "source": "*",
+      "destination": "8.8.8.8",
+      "port": "53",
+      "protocol": "udp",
+      "action": "allow",
+      "priority": 25,
+      "hit_count": 4521
+    }
+  ]
+}

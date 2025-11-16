@@ -1,0 +1,13 @@
+id,name,source,destination,port,protocol,action,priority,hit_count
+1,Allow Web Traffic,*,192.168.1.100,80,tcp,allow,10,1523
+2,Allow HTTPS,*,192.168.1.100,443,tcp,allow,20,2845
+3,Block Telnet,*,*,23,tcp,deny,5,0
+4,Allow SSH Admin,10.0.0.0/8,192.168.1.100,22,tcp,allow,30,245
+5,Allow SSH Duplicate,10.0.0.0/8,192.168.1.100,22,tcp,allow,40,0
+6,Allow All Internal,10.0.0.0/8,192.168.1.0/24,*,any,allow,50,8932
+7,Shadowed SSH,10.0.1.5,192.168.1.100,22,tcp,allow,60,12
+8,Block RDP,*,*,3389,tcp,deny,15,0
+9,Allow Database,192.168.1.50,192.168.1.200,3306,tcp,allow,70,567
+10,Permissive Rule,*,*,*,any,allow,100,0
+11,Unused Port,192.168.2.0/24,192.168.3.0/24,8080,tcp,allow,80,0
+12,Allow DNS,*,8.8.8.8,53,udp,allow,25,4521
