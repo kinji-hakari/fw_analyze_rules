@@ -1,0 +1,11 @@
+id,name,source,destination,port,protocol,action,priority,hit_count
+1,Allow Web Internal,10.0.0.0/8,192.168.1.0/24,80,tcp,allow,20,150
+2,Allow Web Host,10.0.1.5,192.168.1.10,80,tcp,allow,30,10
+3,Allow Web Host Duplicate,10.0.1.5,192.168.1.10,80,tcp,allow,40,5
+4,Deny Telnet All,*,*,23,tcp,deny,5,200
+5,Allow Telnet Internal,10.0.0.0/8,192.168.1.0/24,23,tcp,allow,50,0
+6,Allow Any Any,*,*,*,any,allow,100,5000
+7,Allow SSH Admin,10.0.0.0/8,192.168.1.100,22,tcp,allow,10,100
+8,Allow SSH Specific Host,10.0.1.5,192.168.1.100,22,tcp,allow,60,0
+9,Unused Specific Rule,192.168.10.0/24,10.0.0.1,3306,tcp,allow,70,0
+10,OverPermissive DB,*,192.168.2.10,3306,tcp,allow,80,100

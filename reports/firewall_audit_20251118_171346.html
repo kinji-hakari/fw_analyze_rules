@@ -1,0 +1,1149 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport d'Audit Firewall</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #2c3e50; background: #f5f7fb; padding: 24px; }
+        .container { max-width: 1250px; margin: 0 auto; background: #fff; padding: 32px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+        header { border-bottom: 3px solid #34495e; padding-bottom: 16px; margin-bottom: 24px; }
+        h1 { font-size: 32px; margin-bottom: 6px; }
+        h2 { font-size: 24px; margin: 22px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #ecf0f1; }
+        h3 { font-size: 18px; margin-bottom: 8px; }
+        .meta { color: #7f8c8d; font-size: 13px; }
+        a { color: #2980b9; text-decoration: none; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px; margin: 16px 0 24px; }
+        .card { border-radius: 8px; padding: 16px; color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .c1 { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .c2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .c3 { background: linear-gradient(135deg, #f6d365, #fda085); color: #473c2d; }
+        .c4 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .c5 { background: linear-gradient(135deg, #96fbc4, #f9f586); color: #1d3c34; }
+        .card .label { font-size: 13px; opacity: 0.9; }
+        .card .number { font-size: 32px; font-weight: 700; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .badge.allow { background: #e8f7ee; color: #27ae60; }
+        .badge.deny { background: #fdecea; color: #c0392b; }
+        .badge-sev { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .sev-high { background: #fdecea; color: #c0392b; }
+        .sev-medium { background: #fff4e5; color: #d35400; }
+        .sev-low { background: #ecf5ff; color: #2980b9; }
+        .anomaly { border: 1px solid #e1e8f5; border-left: 5px solid #e74c3c; padding: 18px; border-radius: 8px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 14px; }
+        .anomaly.redundant { border-left-color: #f39c12; }
+        .anomaly.permissive { border-left-color: #e67e22; }
+        .anomaly.unused { border-left-color: #95a5a6; }
+        .anomaly.unsafe { border-left-color: #c0392b; }
+        .anomaly.generalized { border-left-color: #8e44ad; }
+        .anomaly-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+        .anomaly-type { font-weight: 700; color: #7f8c8d; font-size: 13px; }
+        .anomaly-desc { margin: 8px 0; }
+        .rule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 10px; }
+        .rule-box { border: 1px solid #ecf0f1; border-radius: 6px; padding: 10px 12px; background: #fbfcff; }
+        dl { display: grid; grid-template-columns: 120px 1fr; row-gap: 6px; column-gap: 8px; font-size: 13px; }
+        dt { font-weight: 700; color: #7f8c8d; }
+        dd { margin: 0; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .summary-table th, .summary-table td { border: 1px solid #e1e8f5; padding: 8px; text-align: left; font-size: 13px; }
+        .toc { background: #f0f4ff; border: 1px solid #d6e2ff; padding: 12px; border-radius: 8px; margin: 12px 0 20px; }
+        .toc a { display: inline-block; margin-right: 10px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { border: 1px solid #e1e8f5; padding: 10px; text-align: left; font-size: 14px; }
+        th { background: #f5f7fb; }
+        footer { margin-top: 24px; font-size: 12px; color: #7f8c8d; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Rapport d'Audit Firewall</h1>
+        <div class="meta">Généré le 2025-11-18 17:13:46 – Total règles: 10 – Total anomalies: 20</div>
+    </header>
+
+    <div class="toc">
+        <a href="#shadowed">🛑 Règles cachées</a>
+        <a href="#redundant">🟡 Règles redondantes</a>
+        <a href="#permissive">🟠 Règles permissives</a>
+        <a href="#unused">⚪ Règles inutilisées</a>
+        <a href="#unsafe">🧪 Services non sécurisés</a>
+        <a href="#generalized">🧭 Règles de généralisation</a>
+        <a href="#correlated">🧩 Vue corrélée</a>
+        <a href="#allrules">📋 Toutes les règles</a>
+    </div>
+
+    <div class="summary-grid">
+        <div class="card c1">
+            <div class="label">Toutes anomalies</div>
+            <div class="number">20</div>
+        </div>
+        <div class="card c2">
+            <div class="label">Shadowed</div>
+            <div class="number">1</div>
+        </div>
+        <div class="card c3">
+            <div class="label">Redondantes</div>
+            <div class="number">4</div>
+        </div>
+        <div class="card c4">
+            <div class="label">Permissives</div>
+            <div class="number">2</div>
+        </div>
+        <div class="card c4">
+            <div class="label">Services non sécurisés</div>
+            <div class="number">7</div>
+        </div>
+        <div class="card c5">
+            <div class="label">Inutilisées</div>
+            <div class="number">3</div>
+        </div>
+    </div>
+
+    <table class="summary-table">
+        <thead><tr><th>Criticité</th><th>Nombre</th></tr></thead>
+        <tbody>
+            <tr><td>🔥 Haute</td><td>5</td></tr>
+            <tr><td>⚠️ Moyenne</td><td>8</td></tr>
+            <tr><td>🟦 Faible</td><td>7</td></tr>
+        </tbody>
+    </table>
+
+    
+
+    
+
+    
+
+    <div class="section" id="shadowed">
+        <h2>🛑 Règles cachées</h2>
+        
+            
+                <div class="anomaly shadowed">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #5 – Allow Telnet Internal</h3>
+                <div class="anomaly-type">Shadowed</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-high"> 🔥 Haute </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">La règle #5 'Allow Telnet Internal' (prio 50, allow) est cachée par la règle #4 'Deny Telnet All' (prio 5, deny).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#5 – Allow Telnet Internal</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.0/24</dd>
+            <dt>Port</dt><dd>23</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>50</dd>
+            <dt>Hit Count</dt><dd>0</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+        <h4>Règle qui masque</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#4 – Deny Telnet All</dd>
+            <dt>Source</dt><dd>*</dd>
+            <dt>Destination</dt><dd>*</dd>
+            <dt>Port</dt><dd>23</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge deny">deny</span></dd>
+            <dt>Priorité</dt><dd>5</dd>
+            <dt>Hit Count</dt><dd>200</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic bloqué ou autorisé avant d’atteindre la règle (conflit allow/deny).</div>
+        <div><strong>Recommandation :</strong> Supprimer ou déplacer la règle masquée, ou aligner les actions.</div>
+    </div>
+            
+        
+    </div>
+    <div class="section" id="redundant">
+        <h2>🟡 Règles redondantes</h2>
+        
+            
+                <div class="anomaly redundant">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #8 – Allow SSH Specific Host</h3>
+                <div class="anomaly-type">Redundant</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-low"> 🟦 Faible </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #8 'Allow SSH Specific Host' est incluse dans la règle #7 'Allow SSH Admin'.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#8 – Allow SSH Specific Host</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.100</dd>
+            <dt>Port</dt><dd>22</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>60</dd>
+            <dt>Hit Count</dt><dd>0</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+        <h4>Règle de référence</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#7 – Allow SSH Admin</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.100</dd>
+            <dt>Port</dt><dd>22</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>10</dd>
+            <dt>Hit Count</dt><dd>100</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Règle spécifique probablement inutile car déjà couverte.</div>
+        <div><strong>Recommandation :</strong> Supprimer ou restreindre la règle incluse pour clarifier la policy.</div>
+    </div>
+            
+                <div class="anomaly redundant">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #2 – Allow Web Host</h3>
+                <div class="anomaly-type">Redundant</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-low"> 🟦 Faible </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #2 'Allow Web Host' est incluse dans la règle #1 'Allow Web Internal'.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#2 – Allow Web Host</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.10</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>30</dd>
+            <dt>Hit Count</dt><dd>10</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+        <h4>Règle de référence</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#1 – Allow Web Internal</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.0/24</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>20</dd>
+            <dt>Hit Count</dt><dd>150</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Règle spécifique probablement inutile car déjà couverte.</div>
+        <div><strong>Recommandation :</strong> Supprimer ou restreindre la règle incluse pour clarifier la policy.</div>
+    </div>
+            
+                <div class="anomaly redundant">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #3 – Allow Web Host Duplicate</h3>
+                <div class="anomaly-type">Redundant</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-low"> 🟦 Faible </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #3 'Allow Web Host Duplicate' est incluse dans la règle #1 'Allow Web Internal'.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#3 – Allow Web Host Duplicate</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.10</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>40</dd>
+            <dt>Hit Count</dt><dd>5</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+        <h4>Règle de référence</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#1 – Allow Web Internal</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.0/24</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>20</dd>
+            <dt>Hit Count</dt><dd>150</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Règle spécifique probablement inutile car déjà couverte.</div>
+        <div><strong>Recommandation :</strong> Supprimer ou restreindre la règle incluse pour clarifier la policy.</div>
+    </div>
+            
+                <div class="anomaly redundant">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #3 – Allow Web Host Duplicate</h3>
+                <div class="anomaly-type">Redundant</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-low"> 🟦 Faible </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #3 'Allow Web Host Duplicate' est un doublon exact de la règle #2 'Allow Web Host'.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#3 – Allow Web Host Duplicate</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.10</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>40</dd>
+            <dt>Hit Count</dt><dd>5</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+        <h4>Règle de référence</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#2 – Allow Web Host</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.10</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>30</dd>
+            <dt>Hit Count</dt><dd>10</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Complexité inutile, aucun effet fonctionnel.</div>
+        <div><strong>Recommandation :</strong> Supprimer le doublon et conserver une seule règle.</div>
+    </div>
+            
+        
+    </div>
+    <div class="section" id="permissive">
+        <h2>🟠 Règles permissives</h2>
+        
+            
+                <div class="anomaly permissive">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #10 – OverPermissive DB</h3>
+                <div class="anomaly-type">Permissive</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #10 'OverPermissive DB' trop permissive.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#10 – OverPermissive DB</dd>
+            <dt>Source</dt><dd>*</dd>
+            <dt>Destination</dt><dd>192.168.2.10</dd>
+            <dt>Port</dt><dd>3306</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>80</dd>
+            <dt>Hit Count</dt><dd>100</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Surface d'attaque élargie et exposition non contrôlée.</div>
+        <div><strong>Recommandation :</strong> Restreindre source/destination/port/protocole ou segmenter par zone.</div>
+    </div>
+            
+                <div class="anomaly permissive">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #6 – Allow Any Any</h3>
+                <div class="anomaly-type">Permissive</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-high"> 🔥 Haute </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #6 'Allow Any Any' trop permissive.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#6 – Allow Any Any</dd>
+            <dt>Source</dt><dd>*</dd>
+            <dt>Destination</dt><dd>*</dd>
+            <dt>Port</dt><dd>*</dd>
+            <dt>Protocole</dt><dd>any</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>100</dd>
+            <dt>Hit Count</dt><dd>5000</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Surface d'attaque élargie et exposition non contrôlée.</div>
+        <div><strong>Recommandation :</strong> Restreindre source/destination/port/protocole ou segmenter par zone.</div>
+    </div>
+            
+        
+    </div>
+    <div class="section" id="unsafe">
+        <h2>🧪 Services non sécurisés détectés</h2>
+        
+            
+                <div class="anomaly unsafe">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #1 – Allow Web Internal</h3>
+                <div class="anomaly-type">Unsafe</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #1 'Allow Web Internal' autorise le service non sécurisé HTTP non chiffré (port 80).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#1 – Allow Web Internal</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.0/24</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>20</dd>
+            <dt>Hit Count</dt><dd>150</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic non chiffré ou vulnérable (brute force, exfiltration, pivot).</div>
+        <div><strong>Recommandation :</strong> Utiliser l'équivalent chiffré ou restreindre les IP sources/VLANs.</div>
+    </div>
+            
+                <div class="anomaly unsafe">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #2 – Allow Web Host</h3>
+                <div class="anomaly-type">Unsafe</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #2 'Allow Web Host' autorise le service non sécurisé HTTP non chiffré (port 80).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#2 – Allow Web Host</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.10</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>30</dd>
+            <dt>Hit Count</dt><dd>10</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic non chiffré ou vulnérable (brute force, exfiltration, pivot).</div>
+        <div><strong>Recommandation :</strong> Utiliser l'équivalent chiffré ou restreindre les IP sources/VLANs.</div>
+    </div>
+            
+                <div class="anomaly unsafe">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #3 – Allow Web Host Duplicate</h3>
+                <div class="anomaly-type">Unsafe</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #3 'Allow Web Host Duplicate' autorise le service non sécurisé HTTP non chiffré (port 80).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#3 – Allow Web Host Duplicate</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.10</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>40</dd>
+            <dt>Hit Count</dt><dd>5</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic non chiffré ou vulnérable (brute force, exfiltration, pivot).</div>
+        <div><strong>Recommandation :</strong> Utiliser l'équivalent chiffré ou restreindre les IP sources/VLANs.</div>
+    </div>
+            
+                <div class="anomaly unsafe">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #5 – Allow Telnet Internal</h3>
+                <div class="anomaly-type">Unsafe</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #5 'Allow Telnet Internal' autorise le service non sécurisé Telnet en clair (port 23).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#5 – Allow Telnet Internal</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.0/24</dd>
+            <dt>Port</dt><dd>23</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>50</dd>
+            <dt>Hit Count</dt><dd>0</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic non chiffré ou vulnérable (brute force, exfiltration, pivot).</div>
+        <div><strong>Recommandation :</strong> Utiliser l'équivalent chiffré ou restreindre les IP sources/VLANs.</div>
+    </div>
+            
+                <div class="anomaly unsafe">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #9 – Unused Specific Rule</h3>
+                <div class="anomaly-type">Unsafe</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #9 'Unused Specific Rule' autorise le service non sécurisé MySQL (port 3306).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#9 – Unused Specific Rule</dd>
+            <dt>Source</dt><dd>192.168.10.0/24</dd>
+            <dt>Destination</dt><dd>10.0.0.1</dd>
+            <dt>Port</dt><dd>3306</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>70</dd>
+            <dt>Hit Count</dt><dd>0</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic non chiffré ou vulnérable (brute force, exfiltration, pivot).</div>
+        <div><strong>Recommandation :</strong> Utiliser l'équivalent chiffré ou restreindre les IP sources/VLANs.</div>
+    </div>
+            
+                <div class="anomaly unsafe">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #10 – OverPermissive DB</h3>
+                <div class="anomaly-type">Unsafe</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-high"> 🔥 Haute </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #10 'OverPermissive DB' autorise le service non sécurisé MySQL (port 3306).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#10 – OverPermissive DB</dd>
+            <dt>Source</dt><dd>*</dd>
+            <dt>Destination</dt><dd>192.168.2.10</dd>
+            <dt>Port</dt><dd>3306</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>80</dd>
+            <dt>Hit Count</dt><dd>100</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic non chiffré ou vulnérable (brute force, exfiltration, pivot).</div>
+        <div><strong>Recommandation :</strong> Utiliser l'équivalent chiffré ou restreindre les IP sources/VLANs.</div>
+    </div>
+            
+                <div class="anomaly unsafe">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #6 – Allow Any Any</h3>
+                <div class="anomaly-type">Unsafe</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-high"> 🔥 Haute </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #6 'Allow Any Any' autorise le service non sécurisé FTP non chiffré (port 21).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#6 – Allow Any Any</dd>
+            <dt>Source</dt><dd>*</dd>
+            <dt>Destination</dt><dd>*</dd>
+            <dt>Port</dt><dd>*</dd>
+            <dt>Protocole</dt><dd>any</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>100</dd>
+            <dt>Hit Count</dt><dd>5000</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Trafic non chiffré ou vulnérable (brute force, exfiltration, pivot).</div>
+        <div><strong>Recommandation :</strong> Utiliser l'équivalent chiffré ou restreindre les IP sources/VLANs.</div>
+    </div>
+            
+        
+    </div>
+    <div class="section" id="generalized">
+        <h2>🧭 Règles de généralisation</h2>
+        
+            
+                <div class="anomaly generalized">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #7 – Allow SSH Admin</h3>
+                <div class="anomaly-type">Generalized</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #7 'Allow SSH Admin' couvre 1 règle(s) plus spécifiques.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#7 – Allow SSH Admin</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.100</dd>
+            <dt>Port</dt><dd>22</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>10</dd>
+            <dt>Hit Count</dt><dd>100</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+                    <h4>Règles couvertes (1)</h4>
+                    <ul>
+                        
+                        <li>#8 – Allow SSH Specific Host</li>
+                        
+                    </ul>
+                </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Règle parapluie qui peut masquer des erreurs ou rendre l’analyse difficile.</div>
+        <div><strong>Recommandation :</strong> Restreindre son périmètre ou la déplacer plus bas dans la policy.</div>
+    </div>
+            
+                <div class="anomaly generalized">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #1 – Allow Web Internal</h3>
+                <div class="anomaly-type">Generalized</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-medium"> ⚠️ Moyenne </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #1 'Allow Web Internal' couvre 2 règle(s) plus spécifiques.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#1 – Allow Web Internal</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.0/24</dd>
+            <dt>Port</dt><dd>80</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>20</dd>
+            <dt>Hit Count</dt><dd>150</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+                    <h4>Règles couvertes (2)</h4>
+                    <ul>
+                        
+                        <li>#2 – Allow Web Host</li>
+                        
+                        <li>#3 – Allow Web Host Duplicate</li>
+                        
+                    </ul>
+                </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Règle parapluie qui peut masquer des erreurs ou rendre l’analyse difficile.</div>
+        <div><strong>Recommandation :</strong> Restreindre son périmètre ou la déplacer plus bas dans la policy.</div>
+    </div>
+            
+                <div class="anomaly generalized">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #6 – Allow Any Any</h3>
+                <div class="anomaly-type">Generalized</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-high"> 🔥 Haute </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #6 'Allow Any Any' couvre 8 règle(s) plus spécifiques.</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#6 – Allow Any Any</dd>
+            <dt>Source</dt><dd>*</dd>
+            <dt>Destination</dt><dd>*</dd>
+            <dt>Port</dt><dd>*</dd>
+            <dt>Protocole</dt><dd>any</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>100</dd>
+            <dt>Hit Count</dt><dd>5000</dd>
+        </dl>
+    </div>
+            
+                <div class="rule-box">
+                    <h4>Règles couvertes (8)</h4>
+                    <ul>
+                        
+                        <li>#7 – Allow SSH Admin</li>
+                        
+                        <li>#1 – Allow Web Internal</li>
+                        
+                        <li>#2 – Allow Web Host</li>
+                        
+                        <li>#3 – Allow Web Host Duplicate</li>
+                        
+                        <li>#5 – Allow Telnet Internal</li>
+                        
+                        <li>#8 – Allow SSH Specific Host</li>
+                        
+                        <li>#9 – Unused Specific Rule</li>
+                        
+                        <li>#10 – OverPermissive DB</li>
+                        
+                    </ul>
+                </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Règle parapluie qui peut masquer des erreurs ou rendre l’analyse difficile.</div>
+        <div><strong>Recommandation :</strong> Restreindre son périmètre ou la déplacer plus bas dans la policy.</div>
+    </div>
+            
+        
+    </div>
+    <div class="section" id="unused">
+        <h2>⚪ Règles inutilisées</h2>
+        
+            
+                <div class="anomaly unused">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #5 – Allow Telnet Internal</h3>
+                <div class="anomaly-type">Unused</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-low"> 🟦 Faible </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #5 'Allow Telnet Internal' jamais utilisée (0 hits).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#5 – Allow Telnet Internal</dd>
+            <dt>Source</dt><dd>10.0.0.0/8</dd>
+            <dt>Destination</dt><dd>192.168.1.0/24</dd>
+            <dt>Port</dt><dd>23</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>50</dd>
+            <dt>Hit Count</dt><dd>0</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Complexité inutile, risque d’obsolescence.</div>
+        <div><strong>Recommandation :</strong> Valider le besoin ; sinon, archiver ou supprimer.</div>
+    </div>
+            
+                <div class="anomaly unused">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #8 – Allow SSH Specific Host</h3>
+                <div class="anomaly-type">Unused</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-low"> 🟦 Faible </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #8 'Allow SSH Specific Host' jamais utilisée (0 hits).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#8 – Allow SSH Specific Host</dd>
+            <dt>Source</dt><dd>10.0.1.5</dd>
+            <dt>Destination</dt><dd>192.168.1.100</dd>
+            <dt>Port</dt><dd>22</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>60</dd>
+            <dt>Hit Count</dt><dd>0</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Complexité inutile, risque d’obsolescence.</div>
+        <div><strong>Recommandation :</strong> Valider le besoin ; sinon, archiver ou supprimer.</div>
+    </div>
+            
+                <div class="anomaly unused">
+        <div class="anomaly-header">
+            <div>
+                <h3>Règle #9 – Unused Specific Rule</h3>
+                <div class="anomaly-type">Unused</div>
+            </div>
+            <div>
+                
+                <span class="badge-sev sev-low"> 🟦 Faible </span>
+            </div>
+        </div>
+        <div class="anomaly-desc">Règle #9 'Unused Specific Rule' jamais utilisée (0 hits).</div>
+        <div class="rule-grid">
+            <div class="rule-box">
+        <h4>Règle concernée</h4>
+        <dl>
+            <dt>ID / Nom</dt><dd>#9 – Unused Specific Rule</dd>
+            <dt>Source</dt><dd>192.168.10.0/24</dd>
+            <dt>Destination</dt><dd>10.0.0.1</dd>
+            <dt>Port</dt><dd>3306</dd>
+            <dt>Protocole</dt><dd>tcp</dd>
+            <dt>Action</dt><dd><span class="badge allow">allow</span></dd>
+            <dt>Priorité</dt><dd>70</dd>
+            <dt>Hit Count</dt><dd>0</dd>
+        </dl>
+    </div>
+            
+        </div>
+        <div><strong>Impact :</strong> Complexité inutile, risque d’obsolescence.</div>
+        <div><strong>Recommandation :</strong> Valider le besoin ; sinon, archiver ou supprimer.</div>
+    </div>
+            
+        
+    </div>
+
+    <div class="section" id="correlated">
+        <h2>🧩 Vue corrélée des anomalies par règle</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th><th>Nom</th><th>Tags</th><th>Criticité la plus élevée</th>
+                </tr>
+            </thead>
+            <tbody>
+            
+                <tr>
+                    <td>4</td>
+                    <td>Deny Telnet All</td>
+                    <td>shadowed</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>7</td>
+                    <td>Allow SSH Admin</td>
+                    <td>covered, generalized, redundant</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>1</td>
+                    <td>Allow Web Internal</td>
+                    <td>covered, generalized, redundant, unsafe_services</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>2</td>
+                    <td>Allow Web Host</td>
+                    <td>covered, redundant, unsafe_services</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>3</td>
+                    <td>Allow Web Host Duplicate</td>
+                    <td>covered, redundant, unsafe_services</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>5</td>
+                    <td>Allow Telnet Internal</td>
+                    <td>covered, shadowed, unsafe_services, unused</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>8</td>
+                    <td>Allow SSH Specific Host</td>
+                    <td>covered, redundant, unused</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>9</td>
+                    <td>Unused Specific Rule</td>
+                    <td>covered, unsafe_services, unused</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>10</td>
+                    <td>OverPermissive DB</td>
+                    <td>covered, permissive, unsafe_services</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+                <tr>
+                    <td>6</td>
+                    <td>Allow Any Any</td>
+                    <td>generalized, permissive, unsafe_services</td>
+                    
+                        <td><span class="badge-sev sev-high">🔥 Haute</span></td>
+                    
+                </tr>
+            
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section" id="allrules">
+        <h2>📋 Toutes les règles</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th><th>Nom</th><th>Source</th><th>Destination</th><th>Port</th><th>Protocole</th><th>Action</th><th>Priorité</th><th>Hits</th>
+                </tr>
+            </thead>
+            <tbody>
+            
+                <tr>
+                    <td>4</td>
+                    <td>Deny Telnet All</td>
+                    <td>*</td>
+                    <td>*</td>
+                    <td>23</td>
+                    <td>tcp</td>
+                    <td><span class="badge deny">deny</span></td>
+                    <td>5</td>
+                    <td>200</td>
+                </tr>
+            
+                <tr>
+                    <td>7</td>
+                    <td>Allow SSH Admin</td>
+                    <td>10.0.0.0/8</td>
+                    <td>192.168.1.100</td>
+                    <td>22</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>10</td>
+                    <td>100</td>
+                </tr>
+            
+                <tr>
+                    <td>1</td>
+                    <td>Allow Web Internal</td>
+                    <td>10.0.0.0/8</td>
+                    <td>192.168.1.0/24</td>
+                    <td>80</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>20</td>
+                    <td>150</td>
+                </tr>
+            
+                <tr>
+                    <td>2</td>
+                    <td>Allow Web Host</td>
+                    <td>10.0.1.5</td>
+                    <td>192.168.1.10</td>
+                    <td>80</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>30</td>
+                    <td>10</td>
+                </tr>
+            
+                <tr>
+                    <td>3</td>
+                    <td>Allow Web Host Duplicate</td>
+                    <td>10.0.1.5</td>
+                    <td>192.168.1.10</td>
+                    <td>80</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>40</td>
+                    <td>5</td>
+                </tr>
+            
+                <tr>
+                    <td>5</td>
+                    <td>Allow Telnet Internal</td>
+                    <td>10.0.0.0/8</td>
+                    <td>192.168.1.0/24</td>
+                    <td>23</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>50</td>
+                    <td>0</td>
+                </tr>
+            
+                <tr>
+                    <td>8</td>
+                    <td>Allow SSH Specific Host</td>
+                    <td>10.0.1.5</td>
+                    <td>192.168.1.100</td>
+                    <td>22</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>60</td>
+                    <td>0</td>
+                </tr>
+            
+                <tr>
+                    <td>9</td>
+                    <td>Unused Specific Rule</td>
+                    <td>192.168.10.0/24</td>
+                    <td>10.0.0.1</td>
+                    <td>3306</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>70</td>
+                    <td>0</td>
+                </tr>
+            
+                <tr>
+                    <td>10</td>
+                    <td>OverPermissive DB</td>
+                    <td>*</td>
+                    <td>192.168.2.10</td>
+                    <td>3306</td>
+                    <td>tcp</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>80</td>
+                    <td>100</td>
+                </tr>
+            
+                <tr>
+                    <td>6</td>
+                    <td>Allow Any Any</td>
+                    <td>*</td>
+                    <td>*</td>
+                    <td>*</td>
+                    <td>any</td>
+                    <td><span class="badge allow">allow</span></td>
+                    <td>100</td>
+                    <td>5000</td>
+                </tr>
+            
+            </tbody>
+        </table>
+    </div>
+
+    <footer>Généré par Firewall Audit Tool | 2025-11-18 17:13:46</footer>
+</div>
+</body>
+</html>
